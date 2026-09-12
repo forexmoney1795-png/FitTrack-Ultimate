@@ -64,3 +64,4 @@ jobs:
         with:
           name: FitTrack
           path: '${{ env.PROJECT_DIR }}/FitTrack.apk'
+
