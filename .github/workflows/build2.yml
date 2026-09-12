@@ -30,8 +30,10 @@ jobs:
 
       - name: Change App Name Automatically
         run: |
-          STRINGS_PATH=$(find ${{ env.PROJECT_DIR }} -name "strings.xml" | head -n 1)
-          sed -i 's/FitTrack Ultimate/FitTrack/g' $STRINGS_PATH
+          STRINGS_FILES=$(find ${{ env.PROJECT_DIR }} -name "strings.xml")
+          for file in $STRINGS_FILES; do
+            sed -i 's/FitTrack Ultimate/FitTrack/g' "$file" || true
+          done
 
       - name: Create Base64 Logo Image
         run: |
@@ -51,8 +53,7 @@ jobs:
 
       - name: Replace App Logo
         run: |
-          # Find all launcher icons and replace them with the custom logo
-          find ${{ env.PROJECT_DIR }}/src/main/res -name "ic_launcher*.png" -exec cp custom_icon.png {} \;
+          find ${{ env.PROJECT_DIR }}/src/main/res -name "ic_launcher*.png" -exec cp custom_icon.png {} \; || true
 
       - name: Build APK & Rename
         run: |
