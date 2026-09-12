@@ -22,18 +22,16 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Extract Project Zip
+      - name: Extract Project Zip & Find Directory
         run: |
           unzip -o *.zip -d extracted_project
-          PROJ_PATH=$(find extracted_project -name "build.gradle" -exec dirname {} \; | head -n 1)
+          GRADLE_FILE=$(find extracted_project -name "build.gradle" | head -n 1)
+          PROJ_PATH=$(dirname "$GRADLE_FILE")
           echo "PROJECT_DIR=$PROJ_PATH" >> $GITHUB_ENV
 
-      - name: Change App Name Automatically
+      - name: Modify App Name
         run: |
-          STRINGS_FILES=$(find ${{ env.PROJECT_DIR }} -name "strings.xml")
-          for file in $STRINGS_FILES; do
-            sed -i 's/FitTrack Ultimate/FitTrack/g' "$file" || true
-          done
+          find ${{ env.PROJECT_DIR }} -name "strings.xml" -exec sed -i 's/FitTrack Ultimate/FitTrack/g' {} + || true
 
       - name: Create Base64 Logo Image
         run: |
@@ -53,12 +51,12 @@ jobs:
 
       - name: Replace App Logo
         run: |
-          find ${{ env.PROJECT_DIR }}/src/main/res -name "ic_launcher*.png" -exec cp custom_icon.png {} \; || true
+          find ${{ env.PROJECT_DIR }} -name "ic_launcher*.png" -exec cp custom_icon.png {} + || true
 
-      - name: Build APK & Rename
+      - name: Make gradlew executable & Build APK
         run: |
           cd ${{ env.PROJECT_DIR }}
-          gradle assembleDebug
+          if [ -f "gradlew" ]; then chmod +x gradlew; ./gradlew assembleDebug; else gradle assembleDebug; fi
           find . -name "*.apk" -exec mv {} ./FitTrack.apk \;
 
       - name: Upload Debug APK
@@ -66,3 +64,4 @@ jobs:
         with:
           name: FitTrack
           path: '${{ env.PROJECT_DIR }}/FitTrack.apk'
+          
