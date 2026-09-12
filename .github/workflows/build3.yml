@@ -29,45 +29,19 @@ jobs:
           PROJ_PATH=$(dirname "$GRADLE_FILE")
           echo "PROJECT_DIR=$PROJ_PATH" >> $GITHUB_ENV
 
-      - name: Auto-Fix App Name, Developer Details & Login Issues
+      - name: Modify App Name and Info
         run: |
           python3 -c "
-          import os, glob
-
-          project_dir = '${{ env.PROJECT_DIR }}'
-
-          # 1. Fix App Name and Inject Developer Info in strings.xml
-          for strings_path in glob.glob(f'{project_dir}/**/strings.xml', recursive=True):
-              with open(strings_path, 'r', encoding='utf-8') as f:
+          import glob
+          for path in glob.glob('${{ env.PROJECT_DIR }}/**/strings.xml', recursive=True):
+              with open(path, 'r', encoding='utf-8') as f:
                   content = f.read()
-              
-              # Replace app name
               content = content.replace('FitTrack Ultimate', 'FitTrack')
-              
-              # Inject Developer Info if not present
               if 'Princefittrack@gmail.com' not in content:
-                  dev_info = '''
-      <string name=\"developer_info\">Developer: Prince</string>
-      <string name=\"contact_info\">Contact: Princefittrack@gmail.com</string>
-  '''.strip()
-                  content = content.replace('</resources>', f'    {dev_info}\n</resources>')
-              
-              with open(strings_path, 'w', encoding='utf-8') as f:
+                  info = '    <string name=\"developer_info\">Developer: Prince</string>\n    <string name=\"contact_info\">Contact: Princefittrack@gmail.com</string>\n'
+                  content = content.replace('</resources>', info + '</resources>')
+              with open(path, 'w', encoding='utf-8') as f:
                   f.write(content)
-
-          # 2. Fix Login/Logout logic bypass (Auto-bypass or relax validation if needed)
-          for java_path in glob.glob(f'{project_dir}/**/*.java', recursive=True) + glob.glob(f'{project_dir}/**/*.kt', recursive=True):
-              try:
-                  with open(java_path, 'r', encoding='utf-8') as f:
-                      code = f.read()
-                  
-                  # Fix common empty/strict login checks or force success if desired, 
-                  # or ensure logout clears shared preferences
-                  if 'logout' in java_path.lower() or 'auth' in java_path.lower() or 'login' in java_path.lower():
-                      # Add safe clearance or fix logic if required
-                      pass
-              except Exception as e:
-                  print(f'Skipped {java_path}: {e}')
           "
 
       - name: Make gradlew executable & Build APK
