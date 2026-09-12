@@ -29,19 +29,48 @@ jobs:
           PROJ_PATH=$(dirname "$GRADLE_FILE")
           echo "PROJECT_DIR=$PROJ_PATH" >> $GITHUB_ENV
 
-      - name: Modify App Name and Info
+      - name: Force Update App Name and Developer Info
         run: |
           python3 -c "
-          import glob
-          for path in glob.glob('${{ env.PROJECT_DIR }}/**/strings.xml', recursive=True):
-              with open(path, 'r', encoding='utf-8') as f:
-                  content = f.read()
-              content = content.replace('FitTrack Ultimate', 'FitTrack')
-              if 'Princefittrack@gmail.com' not in content:
-                  info = '    <string name=\"developer_info\">Developer: Prince</string>\n    <string name=\"contact_info\">Contact: Princefittrack@gmail.com</string>\n'
-                  content = content.replace('</resources>', info + '</resources>')
-              with open(path, 'w', encoding='utf-8') as f:
-                  f.write(content)
+          import os
+
+          project_dir = '${{ env.PROJECT_DIR }}'
+          print(f'Scanning project directory: {project_dir}')
+
+          # Walk through all files in the project directory
+          for root, dirs, files in os.walk(project_dir):
+              for file in files:
+                  # Check strings.xml and AndroidManifest.xml
+                  if file == 'strings.xml' or file == 'AndroidManifest.xml':
+                      file_path = os.path.join(root, file)
+                      try:
+                          with open(file_path, 'r', encoding='utf-8') as f:
+                              content = f.read()
+                          
+                          modified = False
+                          
+                          # Replace any variation of the old name
+                          if 'FitTrack Ultimate' in content:
+                              content = content.replace('FitTrack Ultimate', 'FitTrack')
+                              modified = True
+                          
+                          if 'android:label=\"FitTrack Ultimate\"' in content:
+                              content = content.replace('android:label=\"FitTrack Ultimate\"', 'android:label=\"FitTrack\"')
+                              modified = True
+
+                          # Inject Developer info into strings.xml
+                          if file == 'strings.xml' and 'Princefittrack@gmail.com' not in content:
+                              if '</resources>' in content:
+                                  dev_info = '    <string name=\"developer_info\">Developer: Prince</string>\n    <string name=\"contact_info\">Contact: Princefittrack@gmail.com</string>\n'
+                                  content = content.replace('</resources>', dev_info + '</resources>')
+                                  modified = True
+
+                          if modified:
+                              with open(file_path, 'w', encoding='utf-8') as f:
+                                  f.write(content)
+                              print(f'Successfully updated: {file_path}')
+                      except Exception as e:
+                          print(f'Error processing {file_path}: {e}')
           "
 
       - name: Make gradlew executable & Build APK
