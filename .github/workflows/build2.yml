@@ -29,29 +29,29 @@ jobs:
           PROJ_PATH=$(dirname "$GRADLE_FILE")
           echo "PROJECT_DIR=$PROJ_PATH" >> $GITHUB_ENV
 
-      - name: Modify App Name
+      - name: Modify App Name & Add Developer Info
         run: |
-          find ${{ env.PROJECT_DIR }} -name "strings.xml" -exec sed -i 's/FitTrack Ultimate/FitTrack/g' {} + || true
+          python3 -c "
+          import os, glob
 
-      - name: Create Base64 Logo Image
-        run: |
-          cat << 'EOF' > logo_base64.txt
-          iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAAARnQU1BAACx
-          jwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAGKSURBVHgB7dpRCsIwEABRh2p/9SBe19C9
-          b1f3vtA22L3RzYIQ14S0v3wMBDImA7O404mIuInXde39fn9e/+/3ezmO47Suazkej+P5fEa9332s
-          c3/f92y/E3sNfUj3C/m/AFAAMACmByC6L93xJ1I8IcoTggKAAUABwACYHoDovnTHn0jxhChPCAoA
-          BgAFAMMAoP2O/E3sNfQh3S/MvwSgAFAAMACmByC6L93xJ1I8IcoTggKAAUABwACYHoDovnTHn0jx
-          hChPCAoA/3cAv/s/Ifo1B4D2O/I3sNfQh3S/MP8SgAFAAMACmByC6L93xJ1I8IcoTggKAAUABwAD
-          YHoDovnTHn0jxhChPCAoABgAFAMMAoP2O/E3sNfQh3S/MPwSgAFAAMACmByC6L93xJ1I8IcoTggKA
-          AUABwACYHoDovnTHn0jxhChPCAoABgAFAMMAoP2O/E3sNfQh3S/MPwSgAFAAMACmByC6L93xJ1I8
-          IcoTggKAAUABwACYHoDovnTHn0jxhChPCAoABgAFAMMAoP2O/E3sNfQh3S/8ASm/Hw4hU36UAAAA
-          AElFTkSuQmCC
-          EOF
-          base64 -d logo_base64.txt > custom_icon.png
+          project_dir = '${{ env.PROJECT_DIR }}'
 
-      - name: Replace App Logo
-        run: |
-          find ${{ env.PROJECT_DIR }} -name "ic_launcher*.png" -exec cp custom_icon.png {} + || true
+          for strings_path in glob.glob(f'{project_dir}/**/strings.xml', recursive=True):
+              with open(strings_path, 'r', encoding='utf-8') as f:
+                  content = f.read()
+              
+              content = content.replace('FitTrack Ultimate', 'FitTrack')
+              
+              if 'Princefittrack@gmail.com' not in content:
+                  dev_info = '''
+      <string name=\"developer_info\">Developer: Prince</string>
+      <string name=\"contact_info\">Contact: Princefittrack@gmail.com</string>
+  '''.strip()
+                  content = content.replace('</resources>', f'    {dev_info}\n</resources>')
+              
+              with open(strings_path, 'w', encoding='utf-8') as f:
+                  f.write(content)
+          "
 
       - name: Make gradlew executable & Build APK
         run: |
@@ -64,4 +64,3 @@ jobs:
         with:
           name: FitTrack
           path: '${{ env.PROJECT_DIR }}/FitTrack.apk'
-          
